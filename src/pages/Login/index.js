@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './login.css';
 
 const Login = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -19,13 +22,31 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
     
-    // 模擬 API 請求
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log('Login attempt:', formData);
+      const response = await fetch('http://localhost:3001/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || '登入失敗');
+      }
+
+      // 登入成功
+      console.log('登入成功:', data);
+      localStorage.setItem('user', JSON.stringify(data));
+      navigate('/'); // 導向首頁或其他頁面
+      
     } catch (error) {
-      console.error('Login failed:', error);
+      setError(error.message || '登入失敗，請稍後再試');
+      console.error('登入失敗:', error);
     } finally {
       setIsLoading(false);
     }
@@ -35,6 +56,7 @@ const Login = () => {
     <div className="min-h-screen">
       <div className="max-w-md">
         <h2>登入系統</h2>
+        {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="input-container">
             <label htmlFor="username">使用者名稱</label>
