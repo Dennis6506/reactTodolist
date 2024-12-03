@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TodoForm } from "./TodoForm";
 import { v4 as uuidv4 } from "uuid";
 import { Todo } from "./Todo";
@@ -6,7 +6,16 @@ import { EditTodoForm } from "./EditTodoForm";
 uuidv4();
 
 export const TodoWrapper = () => {
-  const [todos, setTodos] = useState([]);
+  // 從 localStorage 讀取初始數據，如果沒有則使用空數組
+  const [todos, setTodos] = useState(() => {
+    const savedTodos = localStorage.getItem("todos");
+    return savedTodos ? JSON.parse(savedTodos) : [];
+  });
+
+  // 當 todos 改變時，將數據保存到 localStorage
+  useEffect(() => {
+    localStorage.setItem("todos", JSON.stringify(todos));
+  }, [todos]);
 
   const addTodo = (todo) => {
     setTodos([
@@ -38,7 +47,7 @@ export const TodoWrapper = () => {
 
   const editTask = (task, id) => {
     setTodos(
-      todos.map(todo =>
+      todos.map((todo) =>
         todo.id === id ? { ...todo, task: task, isEditing: false } : todo
       )
     );
@@ -50,7 +59,7 @@ export const TodoWrapper = () => {
       <TodoForm addTodo={addTodo} />
       {todos.map((todo, index) =>
         todo.isEditing ? (
-          <EditTodoForm  editTodo={editTask} task={todo} />
+          <EditTodoForm editTodo={editTask} task={todo} />
         ) : (
           <Todo
             task={todo}
