@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
-const pool = require("./db"); // 引入資料庫配置
+const pool = require("./db");
 require("dotenv").config();
 
 const app = express();
@@ -40,7 +40,7 @@ app.post("/api/login", async (req, res) => {
         console.log("收到登入請求:", { username, password });
 
         const [users] = await pool.execute(
-            "SELECT * FROM users WHERE username = ?",
+            "SELECT * FROM users WHERE username = $1",
             [username]
         );
         console.log("查詢到的使用者:", users);
@@ -80,7 +80,7 @@ app.post("/api/register", async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         await pool.execute(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
+            "INSERT INTO users (username, password) VALUES ($1, $2)",
             [username, hashedPassword]
         );
 
@@ -101,7 +101,7 @@ app.get("/api/todos", async (req, res) => {
         console.log("Fetching todos for user:", userId); // 添加日誌
 
         const [todos] = await pool.execute(
-            "SELECT * FROM todos WHERE user_id = ? ORDER BY created_at DESC",
+            "SELECT * FROM todos WHERE user_id = $1 ORDER BY created_at DESC",
             [userId]
         );
 
@@ -120,12 +120,12 @@ app.post("/api/todos", async (req, res) => {
         const id = require("uuid").v4(); // 生成 UUID
 
         await pool.execute(
-            "INSERT INTO todos (id, user_id, task) VALUES (?, ?, ?)",
+            "INSERT INTO todos (id, user_id, task) VALUES ($1, $2, $3)",
             [id, userId, task]
         );
 
         const [newTodo] = await pool.execute(
-            "SELECT * FROM todos WHERE id = ?",
+            "SELECT * FROM todos WHERE id = $1",
             [id]
         );
 
@@ -143,12 +143,12 @@ app.put("/api/todos/:id", async (req, res) => {
         const { task, completed } = req.body;
 
         await pool.execute(
-            "UPDATE todos SET task = ?, completed = ? WHERE id = ?",
+            "UPDATE todos SET task = $1, completed = $2 WHERE id = $3",
             [task, completed, id]
         );
 
         const [updatedTodo] = await pool.execute(
-            "SELECT * FROM todos WHERE id = ?",
+            "SELECT * FROM todos WHERE id = $1",
             [id]
         );
 
@@ -168,7 +168,7 @@ app.delete("/api/todos/:id", async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [result] = await pool.execute("DELETE FROM todos WHERE id = ?", [
+        const [result] = await pool.execute("DELETE FROM todos WHERE id = $1", [
             id,
         ]);
 

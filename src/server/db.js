@@ -1,24 +1,20 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 
-// 建立連線池
-const pool = mysql.createPool({
-    host: 'localhost',
-    user: 'admin',
-    password: '',
-    database: 'todo_app',
-    waitForConnections: true,
-    connectionLimit: 10,  // 最大連線數
-    queueLimit: 0
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false // 在開發環境中可能需要
+  }
 });
 
 // 測試資料庫連線
-pool.getConnection()
-    .then(connection => {
-        console.log('成功連接到 MySQL 資料庫');
-        connection.release();
-    })
-    .catch(err => {
-        console.error('無法連接到資料庫:', err);
-    });
+pool.connect()
+  .then(client => {
+    console.log('成功連接到 PostgreSQL 資料庫');
+    client.release();
+  })
+  .catch(err => {
+    console.error('無法連接到資料庫:', err);
+  });
 
 module.exports = pool;
