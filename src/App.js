@@ -2,19 +2,22 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import { TodoWrapper } from './pages/TodoWrapper';
 import './App.css';
 
-// 分離路由組件
-function AppRoutes() {
-  const { user } = useAuth();
-  const isAuthenticated = !!user;
-
+function ProtectedRoutes() {
+  const { isAuthenticated } = useAuth();
+  
   return (
     <Routes>
       <Route 
         path="/login" 
         element={isAuthenticated ? <Navigate to="/" /> : <Login />} 
+      />
+      <Route 
+        path="/register" 
+        element={isAuthenticated ? <Navigate to="/" /> : <Register />} 
       />
       <Route 
         path="/" 
@@ -29,7 +32,7 @@ function App() {
     <Router>
       <AuthProvider>
         <div className="App">
-          <AppRoutes />
+          <ProtectedRoutes />
         </div>
       </AuthProvider>
     </Router>

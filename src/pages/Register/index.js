@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { loginUser } from '../../services/api';  
-import './login.css';
+import { registerUser } from '../../services/api';
+import './register.css';
 
-const Login = () => {
+const Register = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,16 +23,23 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('密碼不一致');
+      return;
+    }
+
+    setIsLoading(true);
     
     try {
-      const userData = await loginUser(formData);
-      login(userData);
-      navigate('/');
+      await registerUser({
+        username: formData.username,
+        password: formData.password
+      });
+      navigate('/login');
     } catch (error) {
-      setError(error.message || '登入失敗，請稍後再試');
-      console.error('登入失敗:', error);
+      setError(error.message || '註冊失敗，請稍後再試');
     } finally {
       setIsLoading(false);
     }
@@ -42,7 +48,7 @@ const Login = () => {
   return (
     <div className="min-h-screen">
       <div className="max-w-md">
-        <h2>登入系統</h2>
+        <h2>註冊帳號</h2>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="input-container">
@@ -69,20 +75,32 @@ const Login = () => {
               placeholder="請輸入密碼"
             />
           </div>
+          <div className="input-container">
+            <label htmlFor="confirmPassword">確認密碼</label>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              required
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="請再次輸入密碼"
+            />
+          </div>
           <button
             type="submit"
             className={isLoading ? 'loading' : ''}
             disabled={isLoading}
           >
-            {isLoading ? '登入中...' : '登入'}
+            {isLoading ? '註冊中...' : '註冊'}
           </button>
           <div className="text-center mt-4">
-            <span>還沒有帳號？</span>
+            <span>已有帳號？</span>
             <button
               type="button"
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/login')}
             >
-              立即註冊
+              返回登入
             </button>
           </div>
         </form>
@@ -91,4 +109,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;
