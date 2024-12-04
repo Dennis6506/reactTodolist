@@ -12,6 +12,7 @@ export const TodoWrapper = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || process.env.DATABASE_URL;
+    console.log('Current API URL:', process.env.REACT_APP_API_BASE_URL);
 
     // 載入待辦事項
     useEffect(() => {
