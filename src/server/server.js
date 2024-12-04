@@ -6,18 +6,31 @@ require("dotenv").config();
 
 const app = express();
 
-app.use(cors({
-    origin: [
-      'http://localhost:3000',
-      'https://react-todolist-theta-peach.vercel.app',
-      'https://todolistbackend.vercel.app'
-    ],
+// 定義 CORS 選項
+const corsOptions = {
+    origin: ['http://localhost:3000', 'https://react-todolist-theta-peach.vercel.app'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-  }));
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 86400
+};
 
+// 應用 CORS 設置
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// 全局中間件
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// 添加全局 headers
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', 'https://react-todolist-theta-peach.vercel.app');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    next();
+});
 
 // 測試路由
 app.get("/test", (req, res) => {
@@ -93,7 +106,6 @@ app.post("/api/register", async (req, res) => {
 
         res.status(201).json({ message: "註冊成功" });
     } catch (error) {
-        // 更詳細的錯誤記錄
         console.error("註冊錯誤的完整信息:", error);
         console.error("錯誤代碼:", error.code);
         console.error("錯誤訊息:", error.message);
@@ -104,7 +116,7 @@ app.post("/api/register", async (req, res) => {
         }
         res.status(500).json({ 
             message: "伺服器錯誤",
-            detail: error.message // 加入錯誤詳情以便調試
+            detail: error.message
         });
     }
 });
