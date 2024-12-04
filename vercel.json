@@ -23,6 +23,5 @@
         { "key": "Access-Control-Allow-Credentials", "value": "true" }
       ]
     }
-  ],
-  "outputDirectory": "public"
+  ]
 }
