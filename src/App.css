@@ -8,7 +8,7 @@
 }
 
 body {
-  background: #8758ff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -22,7 +22,17 @@ h1 {
   color: #fff;
   margin-bottom: 0.5rem;
   font-size: 1.75rem;
+  white-space: nowrap;
 }
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  h1 {
+    margin-bottom: 0;
+  }
+} 
 
 .TodoWrapper {
   background: #1a1a40;
@@ -30,6 +40,18 @@ h1 {
   padding: 2rem;
   border-radius: 5px;
   min-width: 350px;
+}
+
+.logout-button {
+  max-width: 4rem;
+  margin-top: 0;
+  padding: 0.5rem 0.5rem;
+  background: #8758ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
 }
 
 .TodoForm {
@@ -107,6 +129,21 @@ h1 {
   color: #c5aeff;
   text-decoration: line-through;
   cursor: pointer;
+}
+
+.updating {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.todo-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.todo-input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 450px) {
