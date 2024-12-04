@@ -9,12 +9,13 @@ const app = express();
 app.use(cors({
     origin: [
       'http://localhost:3000',
-      'https://react-todolist-theta-peach.vercel.app'
+      'https://react-todolist-theta-peach.vercel.app',
+      'https://todolistbackend.vercel.app'
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  }));
 
 app.use(express.json());
 
