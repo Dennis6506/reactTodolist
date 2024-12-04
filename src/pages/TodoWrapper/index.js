@@ -18,7 +18,7 @@ export const TodoWrapper = () => {
         const fetchTodos = async () => {
             try {
                 const response = await fetch(
-                    `${API_BASE_URL}/api/todos?userId=${user.id}`,
+                    `${API_BASE_URL}/todos?userId=${user.id}`,
                     {
                         headers: {
                             "Accept": "application/json",
