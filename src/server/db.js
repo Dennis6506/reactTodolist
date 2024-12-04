@@ -4,7 +4,7 @@ const mysql = require('mysql2/promise');
 const pool = mysql.createPool({
     host: 'localhost',
     user: 'admin',
-    password: '12345',
+    password: '',
     database: 'todo_app',
     waitForConnections: true,
     connectionLimit: 10,  // 最大連線數

@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { loginUser } from '../../services/api';  
 import './login.css';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -25,25 +28,9 @@ const Login = () => {
     setError('');
     
     try {
-      const response = await fetch('http://localhost:3001/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || '登入失敗');
-      }
-
-      // 登入成功
-      console.log('登入成功:', data);
-      localStorage.setItem('user', JSON.stringify(data));
-      navigate('/'); // 導向首頁或其他頁面
-      
+      const userData = await loginUser(formData);
+      login(userData);  // 使用 AuthContext 的 login 函數
+      navigate('/');    // 導航到首頁
     } catch (error) {
       setError(error.message || '登入失敗，請稍後再試');
       console.error('登入失敗:', error);
