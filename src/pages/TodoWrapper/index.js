@@ -2,27 +2,54 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { TodoForm } from "../../components/TodoForm";
-import { v4 as uuidv4 } from "uuid";
 import { Todo } from "../../components/Todo";
 import { EditTodoForm } from "../../components/EditTodoForm";
-uuidv4();
 
 export const TodoWrapper = () => {
-    const { logout } = useAuth();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const [todos, setTodos] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
-    const [todos, setTodos] = useState(() => {
-        const savedTodos = localStorage.getItem("todos");
-        if (savedTodos) {
-            const parsedTodos = JSON.parse(savedTodos);
-            return parsedTodos.map((todo) => ({
-                ...todo,
-                createdAt: new Date(todo.createdAt),
-                updatedAt: new Date(todo.updatedAt),
-            }));
+    // 載入待辦事項
+    useEffect(() => {
+        const fetchTodos = async () => {
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}/api/todos?userId=${user.id}`,
+                    {
+                        headers: {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                setTodos(
+                    data.map((todo) => ({
+                        ...todo,
+                        isEditing: false,
+                    }))
+                );
+            } catch (err) {
+                setError(`無法載入待辦事項: ${err.message}`);
+                console.error("獲取待辦事項失敗:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (user?.id) {
+            fetchTodos();
         }
-        return [];
-    });
+    }, [user?.id]);
 
     // 處理登出
     const handleLogout = () => {
@@ -30,102 +57,169 @@ export const TodoWrapper = () => {
         navigate("/login");
     };
 
-    // 當 todos 改變時，將數據保存到 localStorage
-    useEffect(() => {
-        localStorage.setItem("todos", JSON.stringify(todos));
-    }, [todos]);
+    // 新增待辦事項
+    const addTodo = async (task) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/todos`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                body: JSON.stringify({
+                    userId: user.id,
+                    task,
+                }),
+            });
 
-    const addTodo = (todo) => {
-        const now = new Date();
-        setTodos([
-            ...todos,
-            {
-                id: uuidv4(),
-                task: todo,
-                completed: false,
-                isEditing: false,
-                updatedAt: now,
-            },
-        ]);
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error(`預期接收 JSON 格式，但收到 ${contentType}`);
+            }
+
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(
+                    `HTTP error! status: ${response.status}, message: ${error}`
+                );
+            }
+
+            const newTodo = await response.json();
+            setTodos([...todos, { ...newTodo, isEditing: false }]);
+        } catch (err) {
+            setError(`新增待辦事項失敗: ${err.message}`);
+            console.error("新增待辦事項失敗:", err);
+        }
     };
 
-    const toggleComplete = (id) => {
-        setTodos(
-            todos.map((todo) =>
-                todo.id === id
-                    ? {
-                          ...todo,
-                          completed: !todo.completed,
-                          updatedAt: new Date(),
-                      }
-                    : todo
-            )
-        );
+    // 切換完成狀態
+    const toggleComplete = async (id) => {
+        try {
+            const todo = todos.find((t) => t.id === id);
+            const response = await fetch(`${API_BASE_URL}/api/todos/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    task: todo.task,
+                    completed: !todo.completed,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to update todo");
+            }
+
+            const updatedTodo = await response.json();
+            setTodos(
+                todos.map((todo) =>
+                    todo.id === id ? { ...updatedTodo, isEditing: false } : todo
+                )
+            );
+        } catch (err) {
+            setError("更新待辦事項失敗");
+            console.error("更新待辦事項失敗:", err);
+        }
     };
 
-    const deleteTodo = (id) => {
-        setTodos(todos.filter((todo) => todo.id !== id));
+    // 刪除待辦事項
+    const deleteTodo = async (id) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/todos/${id}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to delete todo");
+            }
+
+            setTodos(todos.filter((todo) => todo.id !== id));
+        } catch (err) {
+            setError("刪除待辦事項失敗");
+            console.error("刪除待辦事項失敗:", err);
+        }
     };
 
+    // 進入編輯模式
     const editTodo = (id) => {
         setTodos(
             todos.map((todo) =>
-                todo.id === id
-                    ? {
-                          ...todo,
-                          isEditing: !todo.isEditing,
-                      }
-                    : todo
+                todo.id === id ? { ...todo, isEditing: !todo.isEditing } : todo
             )
         );
     };
 
-    const editTask = (task, id) => {
-        setTodos(
-            todos.map((todo) =>
-                todo.id === id
-                    ? {
-                          ...todo,
-                          task: task,
-                          isEditing: false,
-                          updatedAt: new Date(),
-                      }
-                    : todo
-            )
-        );
+    // 更新待辦事項內容
+    const editTask = async (task, id) => {
+        try {
+            const todo = todos.find((t) => t.id === id);
+            const response = await fetch(`${API_BASE_URL}/api/todos/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    task,
+                    completed: todo.completed,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to update todo");
+            }
+
+            const updatedTodo = await response.json();
+            setTodos(
+                todos.map((todo) =>
+                    todo.id === id ? { ...updatedTodo, isEditing: false } : todo
+                )
+            );
+        } catch (err) {
+            setError("更新待辦事項失敗");
+            console.error("更新待辦事項失敗:", err);
+        }
     };
+
+    if (loading) {
+        return <div>載入中...</div>;
+    }
 
     return (
-      <div className="TodoWrapper">
-        <div className="header-container">
-          <h1>待辦清單</h1>
-          <button 
-            onClick={handleLogout}
-            className="logout-button"
-            onMouseOver={e => e.target.style.backgroundColor = '#c0392b'}
-            onMouseOut={e => e.target.style.backgroundColor = '#e74c3c'}
-          >
-            登出
-          </button>
+        <div className="TodoWrapper">
+            <div className="header-container">
+                <h1>待辦清單</h1>
+                <button
+                    onClick={handleLogout}
+                    className="logout-button"
+                    onMouseOver={(e) =>
+                        (e.target.style.backgroundColor = "#c0392b")
+                    }
+                    onMouseOut={(e) =>
+                        (e.target.style.backgroundColor = "#e74c3c")
+                    }>
+                    登出
+                </button>
+            </div>
+            {error && <div className="error-message">{error}</div>}
+            <TodoForm addTodo={addTodo} />
+            {todos.map((todo) =>
+                todo.isEditing ? (
+                    <EditTodoForm
+                        key={todo.id}
+                        editTodo={editTask}
+                        task={todo}
+                    />
+                ) : (
+                    <Todo
+                        key={todo.id}
+                        task={todo}
+                        toggleComplete={toggleComplete}
+                        deleteTodo={deleteTodo}
+                        editTodo={editTodo}
+                    />
+                )
+            )}
         </div>
-        <TodoForm addTodo={addTodo} />
-        {todos.map((todo) =>
-          todo.isEditing ? (
-            <EditTodoForm 
-              key={todo.id}
-              editTodo={editTask} 
-              task={todo} 
-            />
-          ) : (
-            <Todo
-              key={todo.id}
-              task={todo}
-              toggleComplete={toggleComplete}
-              deleteTodo={deleteTodo}
-              editTodo={editTodo}
-            />
-          )
-        )}
-      </div>
     );
-  };
+};
