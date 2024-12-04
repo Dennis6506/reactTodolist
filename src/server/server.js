@@ -79,20 +79,32 @@ app.post("/api/login", async (req, res) => {
 app.post("/api/register", async (req, res) => {
     try {
         const { username, password } = req.body;
+        console.log("接收到的註冊資料:", { username, password });
+
         const hashedPassword = await bcrypt.hash(password, 10);
+        console.log("加密後的密碼:", hashedPassword);
 
         const result = await pool.query(
             "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *",
             [username, hashedPassword]
         );
+        console.log("資料庫返回結果:", result);
 
         res.status(201).json({ message: "註冊成功" });
     } catch (error) {
-        if (error.code === '23505') { // PostgreSQL unique violation
+        // 更詳細的錯誤記錄
+        console.error("註冊錯誤的完整信息:", error);
+        console.error("錯誤代碼:", error.code);
+        console.error("錯誤訊息:", error.message);
+        console.error("錯誤詳情:", error.detail);
+
+        if (error.code === '23505') {
             return res.status(400).json({ message: "使用者名稱已存在" });
         }
-        console.error(error);
-        res.status(500).json({ message: "伺服器錯誤" });
+        res.status(500).json({ 
+            message: "伺服器錯誤",
+            detail: error.message // 加入錯誤詳情以便調試
+        });
     }
 });
 
