@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import { TodoWrapper } from './pages/TodoWrapper';
 import './App.css';
 
+// 分離路由組件
 function AppRoutes() {
   const { user } = useAuth();
   const isAuthenticated = !!user;
@@ -25,13 +26,13 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <div className="App">
           <AppRoutes />
         </div>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

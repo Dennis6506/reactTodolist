@@ -29,8 +29,8 @@ const Login = () => {
     
     try {
       const userData = await loginUser(formData);
-      login(userData);  // 使用 AuthContext 的 login 函數
-      navigate('/');    // 導航到首頁
+      login(userData);
+      navigate('/');
     } catch (error) {
       setError(error.message || '登入失敗，請稍後再試');
       console.error('登入失敗:', error);
