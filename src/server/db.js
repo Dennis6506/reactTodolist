@@ -1,20 +1,48 @@
 const { Pool } = require('pg');
+require('dotenv').config({ path: './.env' });  // 明確指定 .env 檔案路徑
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false // 在開發環境中可能需要
-  }
+// 診斷印出
+console.log('Current working directory:', process.cwd());
+console.log('Environment variables loaded:', {
+    DATABASE_URL: process.env.DATABASE_URL ? 'Found (hidden)' : 'Not found',
+    NODE_ENV: process.env.NODE_ENV
 });
 
-// 測試資料庫連線
-pool.connect()
-  .then(client => {
-    console.log('成功連接到 PostgreSQL 資料庫');
-    client.release();
-  })
-  .catch(err => {
-    console.error('無法連接到資料庫:', err);
-  });
+// 確保連接配置正確
+const config = {
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }
+};
+
+console.log('Connection config (without sensitive data):', {
+    ...config,
+    connectionString: config.connectionString ? 'Found (hidden)' : 'Not found'
+});
+
+const pool = new Pool(config);
+
+// 添加更多錯誤處理
+pool.on('error', (err) => {
+    console.error('Unexpected database error:', err);
+});
+
+// 測試連接
+async function testConnection() {
+    try {
+        const client = await pool.connect();
+        console.log('Successfully connected to database');
+        client.release();
+    } catch (err) {
+        console.error('Database connection error:', {
+            message: err.message,
+            code: err.code,
+            stack: err.stack
+        });
+    }
+}
+
+testConnection();
 
 module.exports = pool;
