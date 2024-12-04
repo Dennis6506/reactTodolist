@@ -5,24 +5,28 @@ const pool = require("./db");
 require("dotenv").config();
 
 const app = express();
-app.options("*", cors());
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://react-todolist-theta-peach.vercel.app'],
-    credentials: true
-  }));
+    origin: [
+      'http://localhost:3000',
+      'https://react-todolist-theta-peach.vercel.app'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json());
 
-// 測試路由放在前面
+// 測試路由
 app.get("/test", (req, res) => {
     res.json({ message: "Server is working!" });
 });
 
 app.get("/test-db", async (req, res) => {
     try {
-        const [rows] = await pool.execute("SELECT 1");
-        res.json({ message: "資料庫連線成功", data: rows });
+        const result = await pool.query("SELECT 1");
+        res.json({ message: "資料庫連線成功", data: result.rows });
     } catch (error) {
         res.status(500).json({
             message: "資料庫連線失敗",
@@ -37,18 +41,18 @@ app.post("/api/login", async (req, res) => {
         const { username, password } = req.body;
         console.log("收到登入請求:", { username, password });
 
-        const [users] = await pool.execute(
+        const result = await pool.query(
             "SELECT * FROM users WHERE username = $1",
             [username]
         );
-        console.log("查詢到的使用者:", users);
+        console.log("查詢到的使用者:", result.rows);
 
-        if (users.length === 0) {
+        if (result.rows.length === 0) {
             console.log("找不到使用者");
             return res.status(401).json({ message: "使用者名稱或密碼錯誤" });
         }
 
-        const user = users[0];
+        const user = result.rows[0];
         console.log("資料庫中的密碼:", user.password);
         console.log("使用者輸入的密碼:", password);
 
@@ -77,14 +81,14 @@ app.post("/api/register", async (req, res) => {
         const { username, password } = req.body;
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        await pool.execute(
-            "INSERT INTO users (username, password) VALUES ($1, $2)",
+        const result = await pool.query(
+            "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *",
             [username, hashedPassword]
         );
 
         res.status(201).json({ message: "註冊成功" });
     } catch (error) {
-        if (error.code === "ER_DUP_ENTRY") {
+        if (error.code === '23505') { // PostgreSQL unique violation
             return res.status(400).json({ message: "使用者名稱已存在" });
         }
         console.error(error);
@@ -96,15 +100,15 @@ app.post("/api/register", async (req, res) => {
 app.get("/api/todos", async (req, res) => {
     try {
         const userId = req.query.userId;
-        console.log("Fetching todos for user:", userId); // 添加日誌
+        console.log("Fetching todos for user:", userId);
 
-        const [todos] = await pool.execute(
+        const result = await pool.query(
             "SELECT * FROM todos WHERE user_id = $1 ORDER BY created_at DESC",
             [userId]
         );
 
-        console.log("Found todos:", todos); // 添加日誌
-        res.json(todos); // 確保使用 res.json()
+        console.log("Found todos:", result.rows);
+        res.json(result.rows);
     } catch (error) {
         console.error("獲取待辦事項失敗:", error);
         res.status(500).json({ message: "伺服器錯誤" });
@@ -115,19 +119,14 @@ app.get("/api/todos", async (req, res) => {
 app.post("/api/todos", async (req, res) => {
     try {
         const { userId, task } = req.body;
-        const id = require("uuid").v4(); // 生成 UUID
+        const id = require("uuid").v4();
 
-        await pool.execute(
-            "INSERT INTO todos (id, user_id, task) VALUES ($1, $2, $3)",
+        const result = await pool.query(
+            "INSERT INTO todos (id, user_id, task) VALUES ($1, $2, $3) RETURNING *",
             [id, userId, task]
         );
 
-        const [newTodo] = await pool.execute(
-            "SELECT * FROM todos WHERE id = $1",
-            [id]
-        );
-
-        res.status(201).json(newTodo[0]);
+        res.status(201).json(result.rows[0]);
     } catch (error) {
         console.error("創建待辦事項失敗:", error);
         res.status(500).json({ message: "伺服器錯誤" });
@@ -140,21 +139,16 @@ app.put("/api/todos/:id", async (req, res) => {
         const { id } = req.params;
         const { task, completed } = req.body;
 
-        await pool.execute(
-            "UPDATE todos SET task = $1, completed = $2 WHERE id = $3",
+        const result = await pool.query(
+            "UPDATE todos SET task = $1, completed = $2 WHERE id = $3 RETURNING *",
             [task, completed, id]
         );
 
-        const [updatedTodo] = await pool.execute(
-            "SELECT * FROM todos WHERE id = $1",
-            [id]
-        );
-
-        if (updatedTodo.length === 0) {
+        if (result.rows.length === 0) {
             return res.status(404).json({ message: "找不到該待辦事項" });
         }
 
-        res.json(updatedTodo[0]);
+        res.json(result.rows[0]);
     } catch (error) {
         console.error("更新待辦事項失敗:", error);
         res.status(500).json({ message: "伺服器錯誤" });
@@ -166,11 +160,12 @@ app.delete("/api/todos/:id", async (req, res) => {
     try {
         const { id } = req.params;
 
-        const [result] = await pool.execute("DELETE FROM todos WHERE id = $1", [
-            id,
-        ]);
+        const result = await pool.query(
+            "DELETE FROM todos WHERE id = $1 RETURNING *",
+            [id]
+        );
 
-        if (result.affectedRows === 0) {
+        if (result.rows.length === 0) {
             return res.status(404).json({ message: "找不到該待辦事項" });
         }
 
