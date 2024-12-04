@@ -22,7 +22,17 @@ h1 {
   color: #fff;
   margin-bottom: 0.5rem;
   font-size: 1.75rem;
+  white-space: nowrap;
 }
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  h1 {
+    margin-bottom: 0;
+  }
+} 
 
 .TodoWrapper {
   background: #1a1a40;
@@ -30,6 +40,18 @@ h1 {
   padding: 2rem;
   border-radius: 5px;
   min-width: 350px;
+}
+
+.logout-button {
+  max-width: 4rem;
+  margin-top: 0;
+  padding: 0.5rem 0.5rem;
+  background: #8758ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
 }
 
 .TodoForm {
