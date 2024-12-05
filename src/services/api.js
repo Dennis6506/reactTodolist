@@ -1,14 +1,20 @@
-const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://todolistbackend.vercel.app/api'
-  : 'http://localhost:3001/api';
+const API_URL =
+    process.env.NODE_ENV === "production"
+        ? "https://todolistbackend.vercel.app/api"
+        : "http://localhost:3001/api";
+
+const fetchConfig = {
+    headers: {
+        "Content-Type": "application/json",
+    },
+    credentials: "include",
+};
 
 export const loginUser = async (credentials) => {
     try {
         const response = await fetch(`${API_URL}/login`, {
+            ...fetchConfig,
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify(credentials),
         });
 
@@ -26,10 +32,8 @@ export const loginUser = async (credentials) => {
 export const registerUser = async (userData) => {
     try {
         const response = await fetch(`${API_URL}/register`, {
+            ...fetchConfig,
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify(userData),
         });
 

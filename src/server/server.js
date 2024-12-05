@@ -6,37 +6,28 @@ require("dotenv").config();
 
 const app = express();
 
-// 定義 CORS 選項123
+// CORS 設定
 const corsOptions = {
-    origin: ['http://localhost:3000', 'https://react-todolist-theta-peach.vercel.app'],
+    origin: process.env.NODE_ENV === 'production' 
+        ? ['https://react-todolist-theta-peach.vercel.app']
+        : ['http://localhost:3000'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    maxAge: 86400
 };
 
-// 應用 CORS 設置
+// 應用全局中間件
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
-
-// 全局中間件
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// 添加全局 headers
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', 'https://react-todolist-theta-peach.vercel.app');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    next();
-});
 
 // 測試路由
 app.get("/test", (req, res) => {
     res.json({ message: "Server is working!" });
 });
 
+// 測試數據庫連接
 app.get("/test-db", async (req, res) => {
     try {
         const result = await pool.query("SELECT 1");
@@ -53,32 +44,24 @@ app.get("/test-db", async (req, res) => {
 app.post("/api/login", async (req, res) => {
     try {
         const { username, password } = req.body;
-        console.log("收到登入請求:", { username, password });
+        console.log("收到登入請求:", { username });
 
         const result = await pool.query(
             "SELECT * FROM users WHERE username = $1",
             [username]
         );
-        console.log("查詢到的使用者:", result.rows);
 
         if (result.rows.length === 0) {
-            console.log("找不到使用者");
             return res.status(401).json({ message: "使用者名稱或密碼錯誤" });
         }
 
         const user = result.rows[0];
-        console.log("資料庫中的密碼:", user.password);
-        console.log("使用者輸入的密碼:", password);
-
         const isValid = await bcrypt.compare(password, user.password);
-        console.log("密碼比對結果:", isValid);
 
         if (!isValid) {
-            console.log("密碼不正確");
             return res.status(401).json({ message: "使用者名稱或密碼錯誤" });
         }
 
-        console.log("登入成功");
         res.json({
             id: user.id,
             username: user.username,
@@ -93,23 +76,16 @@ app.post("/api/login", async (req, res) => {
 app.post("/api/register", async (req, res) => {
     try {
         const { username, password } = req.body;
-        console.log("接收到的註冊資料:", { username, password });
-
         const hashedPassword = await bcrypt.hash(password, 10);
-        console.log("加密後的密碼:", hashedPassword);
 
         const result = await pool.query(
             "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *",
             [username, hashedPassword]
         );
-        console.log("資料庫返回結果:", result);
 
         res.status(201).json({ message: "註冊成功" });
     } catch (error) {
-        console.error("註冊錯誤的完整信息:", error);
-        console.error("錯誤代碼:", error.code);
-        console.error("錯誤訊息:", error.message);
-        console.error("錯誤詳情:", error.detail);
+        console.error("註冊錯誤:", error);
 
         if (error.code === '23505') {
             return res.status(400).json({ message: "使用者名稱已存在" });
@@ -121,18 +97,15 @@ app.post("/api/register", async (req, res) => {
     }
 });
 
-// 獲取指定用戶的所有待辦事項
+// 獲取待辦事項列表
 app.get("/api/todos", async (req, res) => {
     try {
         const userId = req.query.userId;
-        console.log("Fetching todos for user:", userId);
-
         const result = await pool.query(
             "SELECT * FROM todos WHERE user_id = $1 ORDER BY created_at DESC",
             [userId]
         );
 
-        console.log("Found todos:", result.rows);
         res.json(result.rows);
     } catch (error) {
         console.error("獲取待辦事項失敗:", error);
@@ -140,7 +113,7 @@ app.get("/api/todos", async (req, res) => {
     }
 });
 
-// 創建新的待辦事項
+// 創建待辦事項
 app.post("/api/todos", async (req, res) => {
     try {
         const { userId, task } = req.body;
@@ -201,6 +174,7 @@ app.delete("/api/todos/:id", async (req, res) => {
     }
 });
 
+// 啟動服務器
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`伺服器運行在 port ${PORT}`);
